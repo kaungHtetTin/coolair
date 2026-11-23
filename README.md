@@ -114,6 +114,8 @@ For production: install dependencies from lockfiles, run migrations, build asset
 
 ## Verification
 
+For `https://coolair.k2studioapp.com/`, use [.env.production.example](.env.production.example) as the live environment template and follow [_docs/production-deployment.md](_docs/production-deployment.md). The production profile enables secure sessions/HTTPS, disables debug output/public administrator signup, and supports `php bin/console deploy:prepare` and `php bin/console deploy:check`. Keep the local `.env` and test database off the live server.
+
 ```sh
 npm test
 npm run test:e2e

@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "vite build --watch",
     "build": "vite build",
-    "test": "php tests/business.php && php tests/concurrency.php && php tests/catalog-seed.php && php tests/lookups.php && php tests/staff-scope.php && php tests/locales.php",
+    "test": "php tests/business.php && php tests/concurrency.php && php tests/catalog-seed.php && php tests/lookups.php && php tests/staff-scope.php && php tests/locales.php && php tests/production.php && node tests/production.mjs",
     "test:e2e": "node tests/e2e.mjs"
   },
   "dependencies": {

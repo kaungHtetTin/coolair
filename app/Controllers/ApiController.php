@@ -27,10 +27,11 @@ final class ApiController
         if ($action==='session') {
             $user=null;
             if (!empty($_SESSION['user_id'])) { try { $user=B::user(); } catch (\Throwable) { unset($_SESSION['user_id']); } }
-            return ['user'=>$user,'csrf'=>Csrf::token(),'setup'=>!(bool)DB::fetchValue('SELECT COUNT(*) FROM users'),'today'=>date('Y-m-d')];
+            return ['user'=>$user,'csrf'=>Csrf::token(),'setup'=>config('app.allow_setup') && !(bool)DB::fetchValue('SELECT COUNT(*) FROM users'),'today'=>date('Y-m-d')];
         }
         if (in_array($action,['login','setup'],true)) {
             $this->post();
+            if ($action==='setup' && !config('app.allow_setup')) B::fail('Public setup is disabled. Contact the office administrator.',403);
             $username=B::text($data,'username',true,100); $password=B::text($data,'password',true,200);
             if ($action==='setup') {
                 DB::transaction(function () use ($data,$username,$password) {

@@ -2,6 +2,10 @@ Options -Indexes
 ServerSignature Off
 RewriteEngine On
 
+# Never serve application code, development tools or persistent business files.
+RewriteRule ^(?:\.git|\.env(?:\..*)?|app|bin|bootstrap|config|database|framework|migrations|node_modules|resources|scripts|starter|storage|tests|vendor|_docs)(?:/|$) - [F,L,NC]
+RewriteRule ^(?:composer\.(?:json|lock)|package(?:-lock)?\.json|vite\.config\.[^/]+|prompt\.txt|README\.md)$ - [F,L,NC]
+
 # Keep the front controller in /public while application links use clean root-domain URLs.
 RewriteRule ^(?!public(?:/|$))(.*)$ public/$1 [L]
 

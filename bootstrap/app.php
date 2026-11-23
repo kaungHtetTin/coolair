@@ -49,13 +49,15 @@ set_exception_handler(function (Throwable $error): void {
         : '<h1>'.e(__('Server error')).'</h1><p>'.e(__('Please try again later.')).'</p>';
 });
 
+Mini\Production::enforce();
+
 if (PHP_SAPI !== 'cli' && session_status() !== PHP_SESSION_ACTIVE) {
     session_name((string) config('app.session_name', 'mini_php_session'));
     ini_set('session.use_strict_mode', '1');
     session_set_cookie_params([
         'lifetime' => 0,
         'path' => '/',
-        'secure' => !empty($_SERVER['HTTPS']) && strtolower((string) $_SERVER['HTTPS']) !== 'off',
+        'secure' => Mini\Production::secureCookie($_SERVER),
         'httponly' => true,
         'samesite' => 'Lax',
     ]);

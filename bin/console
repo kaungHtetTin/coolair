@@ -4,7 +4,14 @@ require dirname(__DIR__) . '/bootstrap/app.php';
 use Mini\Database as DB;
 try {
     $command = $argv[1] ?? 'help';
-    if ($command === 'migrate' || $command === 'migrate:status') {
+    if ($command === 'deploy:prepare') {
+        \App\Services\DeploymentCheck::prepare();
+        echo "Persistent storage directories prepared. Existing files were preserved.\n";
+    } elseif ($command === 'deploy:check') {
+        $failed=false;
+        foreach (\App\Services\DeploymentCheck::checks() as [$ok,$label]) {echo ($ok?'PASS ':'FAIL ').$label."\n";$failed=$failed||!$ok;}
+        exit($failed?1:0);
+    } elseif ($command === 'migrate' || $command === 'migrate:status') {
         DB::connection()->exec('CREATE TABLE IF NOT EXISTS migrations (migration TEXT PRIMARY KEY, migrated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)');
         foreach (glob(BASE_PATH . '/migrations/*.php') as $file) {
             $name = basename($file);
@@ -36,6 +43,6 @@ try {
         DB::connection()->exec('VACUUM INTO ' . DB::connection()->quote($path));
         echo "Created {$path}\n";
     } else {
-        echo "Commands: migrate, migrate:status, db:seed, user:create <username> [password] [name], db:backup\n";
+        echo "Commands: migrate, migrate:status, db:seed, user:create <username> [password] [name], db:backup, deploy:prepare, deploy:check\n";
     }
 } catch (Throwable $e) { fwrite(STDERR, $e->getMessage() . "\n"); exit(1); }
