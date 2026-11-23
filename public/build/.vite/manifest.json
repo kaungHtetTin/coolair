@@ -1,0 +1,23 @@
+{
+  "resources/fonts/NotoSansMyanmar-Regular.ttf": {
+    "file": "assets/NotoSansMyanmar-Regular-D8mhhRmj.ttf",
+    "src": "resources/fonts/NotoSansMyanmar-Regular.ttf"
+  },
+  "resources/fonts/Tharlon-Regular.ttf": {
+    "file": "assets/Tharlon-Regular-DRySg0Z1.ttf",
+    "src": "resources/fonts/Tharlon-Regular.ttf"
+  },
+  "resources/js/app.jsx": {
+    "file": "assets/app-CgHKz_Wa.js",
+    "name": "app",
+    "src": "resources/js/app.jsx",
+    "isEntry": true,
+    "css": [
+      "assets/app-DYstHVWh.css"
+    ],
+    "assets": [
+      "assets/NotoSansMyanmar-Regular-D8mhhRmj.ttf",
+      "assets/Tharlon-Regular-DRySg0Z1.ttf"
+    ]
+  }
+}

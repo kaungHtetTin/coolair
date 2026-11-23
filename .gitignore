@@ -1,0 +1,12 @@
+/.env
+/storage/logs/*.log
+/storage/cache/*
+!/storage/cache/.gitkeep
+/node_modules/
+/vendor/
+/storage/database/*
+!/storage/database/.gitkeep
+/storage/backups/*
+/storage/uploads/*
+/storage/pdf/*
+/tests/artifacts/

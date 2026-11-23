@@ -1,0 +1,9 @@
+{
+    "require": {
+        "php": ">=8.2",
+        "ext-pdo_sqlite": "*",
+        "ext-bcmath": "*",
+        "ext-fileinfo": "*",
+        "mpdf/mpdf": "^8.3.1"
+    }
+}

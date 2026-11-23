@@ -1,0 +1,41 @@
+<?php
+declare(strict_types=1);
+require dirname(__DIR__) . '/bootstrap/app.php';
+use Mini\Database as DB;
+try {
+    $command = $argv[1] ?? 'help';
+    if ($command === 'migrate' || $command === 'migrate:status') {
+        DB::connection()->exec('CREATE TABLE IF NOT EXISTS migrations (migration TEXT PRIMARY KEY, migrated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)');
+        foreach (glob(BASE_PATH . '/migrations/*.php') as $file) {
+            $name = basename($file);
+            $done = DB::fetchValue('SELECT COUNT(*) FROM migrations WHERE migration=?', [$name]);
+            if ($command === 'migrate:status') { echo ($done ? 'YES ' : 'NO  ') . $name . "\n"; continue; }
+            if ($done) continue;
+            DB::transaction(function ($pdo) use ($file, $name) {
+                foreach ((require $file)['up'] as $sql) $pdo->exec($sql);
+                DB::statement('INSERT INTO migrations(migration) VALUES(?)', [$name]);
+            });
+            echo "Applied {$name}\n";
+        }
+    } elseif ($command === 'db:seed') {
+        require BASE_PATH . '/database/seed.php';
+    } elseif ($command === 'user:create') {
+        $username = $argv[2] ?? '';
+        $password = $argv[3] ?? '';
+        if (!$password) { echo 'Password (at least 10 characters): '; $password = trim(fgets(STDIN)); }
+        if (!$username || strlen($password) < 10) throw new RuntimeException('Provide username and a password of at least 10 characters.');
+        DB::transaction(function () use ($argv,$username,$password) {
+            $id=DB::insert('users', ['name' => $argv[4] ?? 'Office Administrator', 'username' => $username, 'password' => password_hash($password, PASSWORD_DEFAULT), 'role' => 'office']);
+            \App\Services\Business::audit('created','user',$id,['source'=>'console','username'=>$username,'role'=>'office']);
+        });
+        echo "Office account created.\n";
+    } elseif ($command === 'db:backup') {
+        $dir = BASE_PATH . '/storage/backups';
+        if (!is_dir($dir)) mkdir($dir, 0770, true);
+        $path = $dir . '/backup-' . date('Ymd-His') . '-' . bin2hex(random_bytes(3)) . '.sqlite';
+        DB::connection()->exec('VACUUM INTO ' . DB::connection()->quote($path));
+        echo "Created {$path}\n";
+    } else {
+        echo "Commands: migrate, migrate:status, db:seed, user:create <username> [password] [name], db:backup\n";
+    }
+} catch (Throwable $e) { fwrite(STDERR, $e->getMessage() . "\n"); exit(1); }

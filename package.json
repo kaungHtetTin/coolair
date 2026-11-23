@@ -1,0 +1,21 @@
+{
+  "name": "cool-air-solution",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite build --watch",
+    "build": "vite build",
+    "test": "php tests/business.php && php tests/concurrency.php && php tests/catalog-seed.php && php tests/lookups.php && php tests/staff-scope.php && php tests/locales.php",
+    "test:e2e": "node tests/e2e.mjs"
+  },
+  "dependencies": {
+    "lucide-react": "^1.77.0",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.65.1",
+    "@vitejs/plugin-react": "^6.3.0",
+    "vite": "^8.3.8"
+  }
+}

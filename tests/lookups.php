@@ -1,0 +1,43 @@
+<?php
+declare(strict_types=1);
+putenv('DB_PATH=:memory:');
+require dirname(__DIR__).'/bootstrap/app.php';
+use Mini\Database as DB;
+use App\Services\Lookup;
+foreach (glob(BASE_PATH.'/migrations/*.php') as $file) foreach ((require $file)['up'] as $sql) DB::connection()->exec($sql);
+require BASE_PATH.'/database/seed.php';
+function lookupCheck(bool $condition,string $message): void { if (!$condition) throw new RuntimeException($message); }
+$office=DB::insert('users',['name'=>'Office','username'=>'office','password'=>'private','role'=>'office']);
+$staff=DB::insert('users',['name'=>'Staff','username'=>'staff','password'=>'private','role'=>'staff']);
+$u=['id'=>$office,'role'=>'office'];$_SESSION=['user_id'=>$office];
+for($i=1;$i<=80;$i++) DB::insert('customers',['name'=>'Customer '.str_pad((string)$i,3,'0',STR_PAD_LEFT),'phone'=>'099'.str_pad((string)$i,6,'0',STR_PAD_LEFT),'address'=>'Site '.$i,'created_by'=>$office]);
+$first=Lookup::search(['resource'=>'customers'],$u);
+$second=Lookup::search(['resource'=>'customers','page'=>2],$u);
+lookupCheck(count($first['rows'])===25 && $first['total']===80 && $first['has_more'],'First page bounded to 25.');
+lookupCheck(count($second['rows'])===25 && $first['rows'][0]['value']!==$second['rows'][0]['value'],'Next page is distinct.');
+$last=Lookup::search(['resource'=>'customers','q'=>'099000080'],$u);
+lookupCheck(count($last['rows'])===1 && $last['rows'][0]['label']==='Customer 080','Find records beyond first page by phone.');
+lookupCheck(Lookup::search(['resource'=>'customers','id'=>'80'],$u)['rows'][0]['value']==='80','Hydrate a selected record without loading all pages.');
+$literal=DB::insert('customers',['name'=>'100%_Literal','created_by'=>$office]);
+lookupCheck(Lookup::search(['resource'=>'customers','q'=>'%_'],$u)['total']===1,'Literal search must escape wildcard characters.');
+$job=DB::insert('jobs',['customer_id'=>80,'title'=>'Assigned installation','assigned_to'=>$staff,'created_by'=>$office]);
+$staffUser=['id'=>$staff,'role'=>'staff'];$_SESSION['user_id']=$staff;
+lookupCheck(Lookup::search(['resource'=>'customers'],$staffUser)['total']===81,'All customers are readable by staff.');
+lookupCheck(count(Lookup::search(['resource'=>'customers','id'=>'1'],$staffUser)['rows'])===1,'Staff can read another creator customer by ID.');
+lookupCheck(Lookup::search(['resource'=>'jobs','q'=>'Assigned'],$staffUser)['total']===1,'Assigned job search.');
+try{Lookup::search(['resource'=>'users'],$staffUser);throw new LogicException('Staff could read office account lookups.');}catch(RuntimeException $e){lookupCheck($e->getCode()===403,'User lookup is office-only.');}
+$_SESSION['user_id']=$office;
+$catalog=Lookup::search(['resource'=>'catalog','q'=>'Copper Pipe'],$u);
+lookupCheck($catalog['total']===6,'Catalog search includes the six pipe variants.');
+$id=(int)$catalog['rows'][0]['value'];DB::update('catalog',$id,['active'=>0]);
+lookupCheck(Lookup::search(['resource'=>'catalog','q'=>'Copper Pipe'],$u)['total']===5,'Archived options are excluded.');
+lookupCheck(Lookup::search(['resource'=>'catalog','id'=>(string)$id],$u)['rows'][0]['disabled'],'Existing archived selection remains identifiable.');
+$users=Lookup::search(['resource'=>'users'],$u);
+lookupCheck(!array_key_exists('password',$users['rows'][0]['record']),'No password hashes in lookup payload.');
+lookupCheck(Lookup::search(['resource'=>'categories','kind'=>'expense','id'=>'Transportation'],$u)['rows'][0]['value']==='Transportation','String-valued categories hydrate correctly.');
+for($i=1;$i<=32;$i++) DB::insert('documents',['number'=>'INV-TEST-'.$i,'type'=>'invoice','job_id'=>$job,'date'=>'2026-11-22','status'=>'issued','customer_snapshot'=>'{}','company_snapshot'=>'{}','subtotal'=>100,'total'=>100,'request_key'=>bin2hex(random_bytes(16)),'created_by'=>$office]);
+$invoices=Lookup::search(['resource'=>'invoices','job_id'=>$job,'page'=>2],$u);
+lookupCheck($invoices['total']===32 && count($invoices['rows'])===7,'Invoice allocation can reach unpaid invoices beyond the first 25.');
+lookupCheck(Lookup::search(['resource'=>'invoices','job_id'=>$job,'q'=>'INV-TEST-1'],$u)['total']===11,'Search invoice numbers within the selected job.');
+lookupCheck(DB::fetchValue('PRAGMA integrity_check')==='ok','SQLite remains valid.');
+echo "Passed lookup checks: paging, phone/specification search, selected-ID hydration, literal queries, staff scope, archive handling, private user fields, and invoice allocation paging.\n";
