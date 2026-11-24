@@ -39,6 +39,8 @@ php -S localhost:8000 -t public public/router.php
 
 Use the existing `.env`, or copy `.env.example` to `.env` on a new installation. Configuration defaults to `storage/database/app.sqlite`, the `Asia/Yangon` timezone, and a unique `cool_air_session` cookie.
 
+To reset a development database, run `php bin/console migrate:fresh`. This deletes all tables and their data in the configured database and reruns every migration. Add `--seed` to also restore the initial settings and catalog: `php bin/console migrate:fresh --seed`.
+
 Open http://localhost:8000. On an empty database, the first page creates the initial office administrator. There are no default passwords or seeded customer transactions. After setup, public account creation is unavailable; office users create staff accounts inside **Staff accounts**.
 
 Alternatively, create the first office account before exposing the application:

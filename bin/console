@@ -11,7 +11,22 @@ try {
         $failed=false;
         foreach (\App\Services\DeploymentCheck::checks() as [$ok,$label]) {echo ($ok?'PASS ':'FAIL ').$label."\n";$failed=$failed||!$ok;}
         exit($failed?1:0);
-    } elseif ($command === 'migrate' || $command === 'migrate:status') {
+    } elseif (in_array($command, ['migrate', 'migrate:status', 'migrate:fresh'], true)) {
+        if ($command === 'migrate:fresh') {
+            $pdo = DB::connection();
+            $pdo->exec('PRAGMA foreign_keys = OFF');
+            try {
+                DB::transaction(function ($pdo) {
+                    $tables = DB::fetchAll("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'");
+                    foreach ($tables as $table) {
+                        $pdo->exec('DROP TABLE "' . str_replace('"', '""', $table['name']) . '"');
+                    }
+                });
+            } finally {
+                $pdo->exec('PRAGMA foreign_keys = ON');
+            }
+            echo "All database tables dropped.\n";
+        }
         DB::connection()->exec('CREATE TABLE IF NOT EXISTS migrations (migration TEXT PRIMARY KEY, migrated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)');
         foreach (glob(BASE_PATH . '/migrations/*.php') as $file) {
             $name = basename($file);
@@ -23,6 +38,9 @@ try {
                 DB::statement('INSERT INTO migrations(migration) VALUES(?)', [$name]);
             });
             echo "Applied {$name}\n";
+        }
+        if ($command === 'migrate:fresh' && in_array('--seed', array_slice($argv, 2), true)) {
+            require BASE_PATH . '/database/seed.php';
         }
     } elseif ($command === 'db:seed') {
         require BASE_PATH . '/database/seed.php';
@@ -43,6 +61,6 @@ try {
         DB::connection()->exec('VACUUM INTO ' . DB::connection()->quote($path));
         echo "Created {$path}\n";
     } else {
-        echo "Commands: migrate, migrate:status, db:seed, user:create <username> [password] [name], db:backup, deploy:prepare, deploy:check\n";
+        echo "Commands: migrate, migrate:status, migrate:fresh [--seed] (deletes all database data), db:seed, user:create <username> [password] [name], db:backup, deploy:prepare, deploy:check\n";
     }
 } catch (Throwable $e) { fwrite(STDERR, $e->getMessage() . "\n"); exit(1); }
